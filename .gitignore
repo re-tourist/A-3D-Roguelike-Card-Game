@@ -1,0 +1,66 @@
+# ===== Unity =====
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+MemoryCaptures/
+SysInfo.txt
+
+# ===== Unity Cache / Generated =====
+*.pidb
+*.svd
+*.pdb
+*.mdb
+*.suo
+*.user
+*.userprefs
+*.unityproj
+
+# Do NOT ignore .meta (Unity needs them)
+# *.meta
+
+# ===== Addressables & Cache =====
+Assets/Addressables*/Build/
+
+# ===== Visual Studio / JetBrains Rider =====
+.vs/
+*.csproj
+*.sln
+*.sln.DotSettings
+*.DotSettings.user
+*.ide
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# ===== OS & Misc =====
+.DS_Store
+Thumbs.db
+*.tmp
+
+# ===== Package Manager cache =====
+# (keep Packages/manifest.json & packages-lock.json tracked)
+# Packages/ and ProjectSettings/ should remain tracked
+
+# ===== Crash & Reports =====
+**/*.stackdump
+
+# ===== Unity auto-generated =====
+ExportedObj/
+.consistency
+
+# ===== Obj Debug TempPE (seen in workspace) =====
+obj/Debug/TempPE/
+
+# ===== Other common ignores =====
+Logs/
+Temp/
+Library/
+
+# ===== Build artifacts =====
+Build/
+Builds/
