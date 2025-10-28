@@ -1,0 +1,46 @@
+借物：
+模型来源：Atlus, Sega
+模型提取：ApricotHere
+模型转换绑定：zeright08
+
+总借物：Atlus/Sega/ApricotHere/zeright08
+使用模型时请将总借物书写进借物表！
+
+注意：对脸部进行了改造。
+
+带有红/金瞳的表情
+
+允许事项：
+允许小幅度修改模型，优化模型权重，物理
+允许mod使用，但是我不对使用后的任何问题负责
+
+
+禁止事项：
+禁止用于r18，三观扭曲，侮辱角色，涉及敏感话题的视频制作
+禁止对模型进行替换部件，提取部件等改造
+禁止将此模型制作的视频投稿niconico网站
+
+ENG
+Credits:
+Model source: Atlus, Sega
+Model rip: ApricotHere
+Model conversion: zeright08
+
+Total Credits: Atlus/Sega/ApricotHere/zeright08
+Please write the total Credits when you use the model.
+
+Notice: The face has been modified.
+
+Contain red/yellow eyes facial.
+
+Yes:(you can do
+Minor model modifications are allowed, model weights and physics are optimized
+Mods are allowed, but I am not responsible for any problems after 
+
+NO:(you can't do
+It is prohibited to use it for r18, distorted values, insulting characters, and videos involving sensitive topics
+It is prohibited to replace parts, extract parts on the model
+It is prohibited to submit videos made with this model to NicoNico(If you are Japanese,don't use this model
+
+
+If original author doesn't want me to DL this model,please contact me to delete.
