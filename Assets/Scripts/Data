@@ -1,0 +1,12 @@
+// playData
+[System.Serializable]
+public class PlayerData
+{
+    public int currentHP;
+    public int maxHP;
+    public int energy;
+    public int gold;
+    public List<string> cardDeck;
+    public List<string> relics;
+    public List<string> potions;
+}
