@@ -3,8 +3,8 @@ using UnityEngine.SceneManagement;
 using System.Collections;
 
 /// <summary>
-/// ¿ØÖÆ³¡¾°¼ÓÔØ/Ð¶ÔØ£¨Additive Ä£Ê½£©
-/// ±£Ö¤ BootstrapScene ³£×¤£¬ÆäËü³¡¾°¶¯Ì¬ÇÐ»»¡£
+/// ï¿½ï¿½ï¿½Æ³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½/Ð¶ï¿½Ø£ï¿½Additive Ä£Ê½ï¿½ï¿½
+/// ï¿½ï¿½Ö¤ BootstrapScene ï¿½ï¿½×¤ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ì¬ï¿½Ð»ï¿½ï¿½ï¿½
 /// </summary>
 public class SceneFlowManager : MonoBehaviour
 {
@@ -27,7 +27,7 @@ public class SceneFlowManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Òì²½¼ÓÔØÖ¸¶¨³¡¾°£¨Additive Ä£Ê½£©
+    /// ï¿½ì²½ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Additive Ä£Ê½ï¿½ï¿½
     /// </summary>
     public void LoadScene(SceneType type, object context = null)
     {
@@ -54,7 +54,8 @@ public class SceneFlowManager : MonoBehaviour
 
     private string GetSceneName(SceneType type) => type switch
     {
-        SceneType.MainMenu => "00_MainMenu",
+        // ä¸Žå½“å‰é¡¹ç›®åœºæ™¯æ–‡ä»¶åä¿æŒä¸€è‡´
+        SceneType.MainMenu => "MainMenu",
         SceneType.Map => "01_MapScene",
         SceneType.Battle => "02_BattleScene",
         SceneType.Reward => "03_RewardScene",
