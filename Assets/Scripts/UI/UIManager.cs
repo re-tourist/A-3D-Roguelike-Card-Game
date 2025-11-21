@@ -1,9 +1,10 @@
 using UnityEngine;
 using System.Collections.Generic;
+ 
 
 /// <summary>
-/// È«¾Ö UI ¹ÜÀíÆ÷
-/// ¿ØÖÆ Canvas ²ãÃæÉÏµÄÃæ°å¼ÓÔØÓëÇĞ»»¡£
+/// å…¨å±€ UI ç®¡ç†å™¨
+/// è´Ÿè´£åœ¨ä¸» Canvas ä¸Šç®¡ç†å„é¢æ¿çš„æ˜¾ç¤ºä¸åˆ‡æ¢
 /// </summary>
 public class UIManager : MonoBehaviour
 {
@@ -12,6 +13,7 @@ public class UIManager : MonoBehaviour
     private readonly Dictionary<string, GameObject> panels = new();
 
     [SerializeField] private Canvas mainCanvas;
+    public ESCMenuController escMenu;
 
     private void Awake()
     {
@@ -57,7 +59,7 @@ public class UIManager : MonoBehaviour
     }
 
     /// <summary>
-    /// ÏÔÊ¾Ä¿±êÃæ°å
+    /// æ˜¾ç¤ºç›®æ ‡é¢æ¿
     /// </summary>
     public void ShowPanel(string panelName)
     {
@@ -66,12 +68,19 @@ public class UIManager : MonoBehaviour
         Debug.Log($"[UIManager] Switched to {panelName}");
     }
 
+    public void ToggleESCMenu()
+    {
+        escMenu?.Toggle();
+    }
+
     /// <summary>
-    /// ×¢²áUIÃæ°å£¨¿ÉÔÚ¼ÓÔØPrefabÊ±µ÷ÓÃ£©
+    /// æ³¨å†Œ UI é¢æ¿ï¼ˆåœ¨åŠ è½½ Prefab æ—¶è°ƒç”¨ï¼‰
     /// </summary>
     public void RegisterPanel(string name, GameObject panel)
     {
         if (!panels.ContainsKey(name))
             panels.Add(name, panel);
     }
+
+ 
 }

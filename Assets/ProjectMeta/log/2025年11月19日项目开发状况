@@ -1,0 +1,75 @@
+项目开发状况（2025-11-19）
+请参考仓库内模块与状态。
+项目概述
+本项目为 3D RogueLike 卡牌游戏的原型工程，当前重点在“全局管理、场景流转、UI（主菜单与 ESC 菜单）、地图生成与可视化”等模块的搭建与打通。
+一、已完成功能与模块
+1) 全局管理
+- 单例化的全局游戏管理：`Assets/Scripts/Core/GameManager.cs:6-16`，负责状态机与系统初始化，并在启动后加载主菜单场景
+- 事件总线：`Assets/Scripts/Core/EventBus.cs:8-18`，提供发布/订阅机制，支撑跨系统解耦
+- 场景流转管理（Additive）：`Assets/Scripts/Core/SceneFlowManager.cs:9-17`，统一调度主菜单/地图/战斗/奖励等场景的加载卸载
+- 音频管理：`Assets/Scripts/Audio/AudioManager.cs:6-12`，基础的 BGM/SFX 播放与控制
+
+2) UI 系统
+- 主菜单：`Assets/Scripts/UI/MainMenu/MainMenuController.cs:5-16`，已接好按钮行为（继续、新游戏、放弃、设置、退出），与存档状态联动，调用场景流转
+- 全局 UI 管理器：`Assets/Scripts/UI/UIManager.cs:8-16`，接收游戏状态事件并切换面板，支持 ESC 菜单开关
+- ESC 菜单（运行时）：控制器 `Assets/Scripts/UI/ESCMenu/ESCMenuController.cs:3-10`、输入 `Assets/Scripts/UI/ESCMenu/ESCMenuInput.cs:3-7`、动画 `Assets/Scripts/UI/ESCMenu/ESCMenuAnimator.cs:3-12`；支持暂停/恢复、设置、返回主菜单
+- ESC 菜单（编辑器工具）：Prefab 生成与一键接线
+  - 生成：`Assets/Editor/ESCMenuPrefabCreator.cs:7-12`，自动创建 ESC 菜单所需的 UI 结构并保存到 `Assets/Prefabs/UI/ESCMenu`
+  - 场景接线：`Assets/Editor/ESCMenuSceneSetup.cs:7-12`，一键实例化到场景、自动补齐引用与按钮绑定
+
+3) 地图系统（RogueLike 路网）
+- 图结构：`Assets/Scripts/Map/MapGraph.cs:5-12`、`Assets/Scripts/Map/MapNode.cs:5-14`，支持分层（tiers）与多轨（lanes）、前向连接（forward）
+- 生成器：`Assets/Scripts/Map/MapGenerator.cs:5-12`，依据权重与层级规则生成节点类型与连接，并维护可达性 `UpdateAvailability`
+- 可视化与交互：`Assets/Scripts/Map/MapController.cs:7-16`，在 `Canvas` 上布置节点与连接线，点击可驱动场景切换与进度保存
+- 节点视图：`Assets/Scripts/Map/NodeView.cs:6-12`，根据节点类型与状态更新颜色、可交互性与高亮环
+- 存档：`Assets/Scripts/Core/SaveManager.cs:5-12`，持久化当前节点与整图状态到 `PlayerPrefs`
+
+4) 资源与美术
+- 外部环境包 Flooded_Grounds（含 PostProcessing v2 相关脚本与资源）已导入，并含若干示例场景与音频/着色器资源
+- `Assets/Art/Models` 下存在角色与配件模型，占位素材用于 UI 与过场
+
+二、近期修复与变更
+- 移除对 DOTween 的运行时依赖：将 `ESCMenuAnimator` 原本的 `DG.Tweening` 动画替换为协程与自定义缓动（保留时序与效果），路径 `Assets/Scripts/UI/ESCMenu/ESCMenuAnimator.cs`
+- 解决 PostProcessing 自定义属性抽屆冲突：将 `MinDrawer` 明确限定为 `UnityEngine.PostProcessing.MinAttribute`，路径 `Assets/Flooded_Grounds/PostProcessing/Editor/PropertyDrawers/MinDrawer.cs:6、:11`
+
+三、现状评估（功能完成度）
+- 场景流转：框架已就位，MainMenu 加载正常；Map/Battle/Reward 实际场景尚未与命名映射完全对齐（见“待办与风险”）
+- UI 与交互：主菜单与 ESC 菜单可用；设置面板为运行时动态构建的占位实现，后续需替换为正式 UI
+- 地图玩法：已能生成并展示多列多轨的节点与连接，点击节点驱动可达性刷新与场景切换占位行为
+- 存档：地图进度保存/恢复已就绪，继续/放弃行为已与主菜单联动
+- 资源：PostProcessing、示例音频与着色器可用；ESC 菜单裂隙图片为占位色块，建议后续替换为正式素材
+
+四、待办与风险
+- 场景命名与存在性不一致：`SceneFlowManager` 期望 `"01_MapScene"/"02_BattleScene"/"03_RewardScene"/"99_DebugScene"`，而当前存在 `Assets/Scenes/MainMenu.unity`、`Coutryside.unity`、`Test.unity`、`BootstrapScene.unity`
+  - 建议：创建并命名规范化场景，或在 `GetSceneName` 中改为使用现有场景名（`Assets/Scripts/Core/SceneFlowManager.cs:55-63`）
+- 卡牌系统尚未落地：仓库中暂无 `Card/Deck/Hand` 相关脚本（检索无匹配），战斗循环为占位
+  - 建议：先实现最小可玩战斗与卡牌数据结构（卡牌定义、抽牌、能量、效果结算）
+- Addressables 未配置：存在 `Assets/Addressables` 目录但未见配置与标签使用
+  - 建议：引入 Addressables 配置用于 UI Prefab、音频与关卡资源的按需加载
+- 输入系统：ESC 菜单使用旧输入系统 `Input.GetKeyDown`；若项目后续采用新输入系统需统一
+- 资源占位：ESC 裂隙与 Glow 使用纯色 `Image`；正式素材与特效需替换与调优
+- 测试与校验：尚未看到单元测试或集成测试；建议为地图生成器与存档恢复编写基础测试（编辑器或 PlayMode）
+
+五、建议的下一阶段里程碑
+- 里程碑 A：场景与流转对齐
+  - 新建 `01_MapScene/02_BattleScene/03_RewardScene/99_DebugScene`，在 Build Settings 中配置；将现有 `Coutryside/Test` 作为参考或迁移内容
+  - 在 `Map` 场景中放置 `MapController` 所需的 `Canvas`、`NodeView`、线段预制体，验证生成/点击/存档闭环
+- 里程碑 B：最小战斗与卡牌原型
+  - 建立卡牌数据与行为接口（费用、目标、效果），实现抽牌/出牌/弃牌的基础循环
+  - 战斗场景接入：从地图节点类型进入普通/精英/Boss 战斗的差异化参数
+- 里程碑 C：资源与 UI 架构
+  - Addressables 配置与资源分组，主菜单/ESC 菜单/地图 UI 的 Prefab 化与按需加载
+  - 替换 ESC 菜单裂隙/光效素材，加入基础过渡与音效
+- 里程碑 D：技术栈完善
+  - 若采用新输入系统，统一输入方案；为地图与存档模块编写基础测试；为关键系统增加日志与诊断面板
+
+六、当前仓库关键引用
+- 游戏状态与场景：`Assets/Scripts/Core/GameManager.cs:43-46`、`Assets/Scripts/Core/SceneFlowManager.cs:37-53`
+- 事件总线：`Assets/Scripts/Core/EventBus.cs:34-38`
+- 主菜单按钮行为：`Assets/Scripts/UI/MainMenu/MainMenuController.cs:74-86`
+- ESC 菜单开关与暂停：`Assets/Scripts/UI/ESCMenu/ESCMenuController.cs:26-36`、`:38-48`
+- 地图生成与点击：`Assets/Scripts/Map/MapGenerator.cs:19-54`、`Assets/Scripts/Map/MapController.cs:135-177`
+- 存档保存/恢复：`Assets/Scripts/Core/SaveManager.cs:29-54`、`:56-79`
+
+附注
+- 目前编译已清理“MinAttribute 冲突”，DOTween 相关错误已通过替换方案移除；如需恢复并使用 DOTween，可在包管理器中导入后再切换动画实现。

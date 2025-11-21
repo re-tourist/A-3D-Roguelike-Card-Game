@@ -1,5 +1,8 @@
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
+using UnityEngine.EventSystems;
+ 
 
 /// <summary>
 /// 在运行时于主菜单场景下构建左下角按钮列。
@@ -7,18 +10,28 @@ using UnityEngine.UI;
 /// </summary>
 public class MainMenuUIBuilder : MonoBehaviour
 {
-    public bool buildOnStart = true;
-    public Vector2 panelSize = new Vector2(320f, 380f);
-    public Vector2 panelOffset = new Vector2(24f, 24f); // 距离左下角的偏移
+    public bool buildOnStart = false;
+    public Vector2 panelSize = new Vector2(360f, 380f);
+    public Vector2 panelOffset = new Vector2(80f, 0f);
     public Font defaultFont; // 可选：自定义字体
+    public bool allowDragInPlay = true;
+    public bool rememberPosition = false;
+    public float layoutSpacing = 20f;
+    public float globalFontSize = 28f;
+    public float globalLineSpacing = 4f;
+    public TMP_FontAsset fontAsset;
+    public bool useTimesNewRoman = true;
+    public TextAlignmentOptions textAlignment = TextAlignmentOptions.Center;
+    public PanelAnchor anchor = PanelAnchor.CenterLeft;
 
-    void Start()
-    {
-        if (buildOnStart)
-        {
-            BuildIfMissing();
-        }
-    }
+    public enum PanelAnchor { BottomLeft, BottomRight, TopLeft, TopRight, CenterLeft, CenterRight, Center }
+
+    struct P { public float x; public float y; }
+    struct S { public float fontSize; public float lineSpacing; public int alignment; public float layoutSpacing; public bool useTimesNewRoman; public string fontPath; }
+
+ 
+
+ 
 
     public void BuildIfMissing()
     {
@@ -30,7 +43,7 @@ public class MainMenuUIBuilder : MonoBehaviour
 
         // 已存在按钮则不重复创建
         if (controller.continueButton != null && controller.newGameButton != null &&
-            controller.abandonButton != null && controller.menuButton != null && controller.exitButton != null)
+            controller.abandonButton != null && controller.settingsButton != null && controller.exitButton != null)
         {
             return;
         }
@@ -38,37 +51,67 @@ public class MainMenuUIBuilder : MonoBehaviour
         var canvas = GetComponentInParent<Canvas>();
         var parent = canvas != null ? canvas.transform : transform;
 
-        // 创建面板并放置在左下角
-        var panelGo = new GameObject("MainMenuButtonsPanel", typeof(RectTransform), typeof(Image), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
+        var rootGo = new GameObject("MainMenu", typeof(RectTransform));
+        var rootRt = rootGo.GetComponent<RectTransform>();
+        rootRt.SetParent(parent, false);
+        rootRt.anchorMin = Vector2.zero; rootRt.anchorMax = Vector2.one;
+        rootRt.offsetMin = Vector2.zero; rootRt.offsetMax = Vector2.zero;
+
+        var leftBar = new GameObject("LeftBlackBar", typeof(RectTransform), typeof(Image));
+        var lrt = leftBar.GetComponent<RectTransform>();
+        lrt.SetParent(rootGo.transform, false);
+        lrt.anchorMin = new Vector2(0f, 0f); lrt.anchorMax = new Vector2(0f, 1f);
+        lrt.pivot = new Vector2(0f, 0.5f);
+        lrt.sizeDelta = new Vector2(240f, 0f);
+        lrt.anchoredPosition = new Vector2(0f, 0f);
+        var limg = leftBar.GetComponent<Image>(); limg.color = Color.black; limg.raycastTarget = false;
+
+        var rightBar = new GameObject("RightBlackBar", typeof(RectTransform), typeof(Image));
+        var rrt = rightBar.GetComponent<RectTransform>();
+        rrt.SetParent(rootGo.transform, false);
+        rrt.anchorMin = new Vector2(1f, 0f); rrt.anchorMax = new Vector2(1f, 1f);
+        rrt.pivot = new Vector2(1f, 0.5f);
+        rrt.sizeDelta = new Vector2(240f, 0f);
+        rrt.anchoredPosition = new Vector2(0f, 0f);
+        var rimg = rightBar.GetComponent<Image>(); rimg.color = Color.black; rimg.raycastTarget = false;
+
+        var titleGo = new GameObject("Title", typeof(RectTransform), typeof(TextMeshProUGUI));
+        var titleRt = titleGo.GetComponent<RectTransform>();
+        titleRt.SetParent(rootGo.transform, false);
+        titleRt.anchorMin = titleRt.anchorMax = new Vector2(0.5f, 1f);
+        titleRt.pivot = new Vector2(0.5f, 1f);
+        titleRt.anchoredPosition = new Vector2(0f, -80f);
+        titleRt.sizeDelta = new Vector2(1000f, 100f);
+        var title = titleGo.GetComponent<TextMeshProUGUI>();
+        title.text = "万象骗局";
+        title.alignment = TextAlignmentOptions.Center;
+        title.fontSize = 64f;
+        title.color = Color.white;
+        var tf = ResolveTMPFont(); if (tf != null) title.font = tf;
+
+        var panelGo = new GameObject("WidgetList", typeof(RectTransform), typeof(Image), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
         var panelRt = panelGo.GetComponent<RectTransform>();
-        panelRt.SetParent(parent, false);
-        panelRt.anchorMin = new Vector2(0f, 0f);
-        panelRt.anchorMax = new Vector2(0f, 0f);
-        panelRt.pivot = new Vector2(0f, 0f);
-        panelRt.sizeDelta = panelSize;
-        panelRt.anchoredPosition = panelOffset;
-
-        var panelImg = panelGo.GetComponent<Image>();
-        panelImg.color = new Color(0f, 0f, 0f, 0.35f); // 半透明黑背景
-
+        panelRt.SetParent(rootGo.transform, false);
+        panelRt.anchorMin = panelRt.anchorMax = new Vector2(0.5f, 0.5f);
+        panelRt.pivot = new Vector2(0.5f, 0.5f);
+        panelRt.anchoredPosition = new Vector2(0f, -20f);
+        panelRt.sizeDelta = new Vector2(panelSize.x, panelSize.y);
+        var panelImg = panelGo.GetComponent<Image>(); panelImg.color = new Color(0f, 0f, 0f, 0.35f);
         var vlg = panelGo.GetComponent<VerticalLayoutGroup>();
         vlg.padding = new RectOffset(12, 12, 12, 12);
-        vlg.spacing = 12f;
-        vlg.childControlHeight = true;
-        vlg.childControlWidth = true;
-        vlg.childForceExpandHeight = false;
-        vlg.childForceExpandWidth = true;
+        vlg.spacing = layoutSpacing;
+        vlg.childControlHeight = true; vlg.childControlWidth = true;
+        vlg.childForceExpandHeight = false; vlg.childForceExpandWidth = true;
+        var csf = panelGo.GetComponent<ContentSizeFitter>(); csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-        var csf = panelGo.GetComponent<ContentSizeFitter>();
-        csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-
-        // 创建按钮
         controller.buttonsPanel = panelRt;
-        controller.continueButton = CreateButton(panelRt, "继续游戏", OnContinueClick);
-        controller.newGameButton = CreateButton(panelRt, "新游戏", OnNewGameClick);
+        controller.newGameButton = CreateButton(panelRt, "开始游戏", OnNewGameClick);
+        controller.continueButton = CreateButton(panelRt, "继续当前游戏", OnContinueClick);
         controller.abandonButton = CreateButton(panelRt, "放弃当前游戏", OnAbandonClick);
-        controller.menuButton = CreateButton(panelRt, "菜单", OnMenuClick);
+        controller.settingsButton = CreateButton(panelRt, "设置", OnSettingsClick);
         controller.exitButton = CreateButton(panelRt, "退出", OnExitClick);
+        controller.continueButton.gameObject.SetActive(false);
+        controller.abandonButton.gameObject.SetActive(false);
     }
 
     Button CreateButton(RectTransform parent, string label, UnityEngine.Events.UnityAction onClick)
@@ -85,7 +128,12 @@ public class MainMenuUIBuilder : MonoBehaviour
         btn.targetGraphic = img;
         btn.onClick.AddListener(onClick);
 
-        var textGo = new GameObject("Text", typeof(RectTransform), typeof(Text));
+        var le = go.AddComponent<LayoutElement>();
+        le.minHeight = 56f;
+        le.preferredHeight = 56f;
+        le.flexibleWidth = 1f;
+
+        var textGo = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
         var trt = textGo.GetComponent<RectTransform>();
         trt.SetParent(go.transform, false);
         trt.anchorMin = new Vector2(0f, 0f);
@@ -93,12 +141,14 @@ public class MainMenuUIBuilder : MonoBehaviour
         trt.offsetMin = new Vector2(12f, 8f);
         trt.offsetMax = new Vector2(-12f, -8f);
 
-        var text = textGo.GetComponent<Text>();
+        var text = textGo.GetComponent<TextMeshProUGUI>();
         text.text = label;
-        text.alignment = TextAnchor.MiddleLeft;
+        text.alignment = textAlignment;
         text.color = Color.white;
-        text.fontSize = 20;
-        if (defaultFont != null) text.font = defaultFont;
+        text.fontSize = globalFontSize;
+        text.lineSpacing = globalLineSpacing;
+        var f = ResolveTMPFont();
+        if (f != null) text.font = f;
 
         return btn;
     }
@@ -107,6 +157,77 @@ public class MainMenuUIBuilder : MonoBehaviour
     void OnContinueClick() => GetComponent<MainMenuController>().SendMessage("OnContinue", SendMessageOptions.DontRequireReceiver);
     void OnNewGameClick() => GetComponent<MainMenuController>().SendMessage("OnNewGame", SendMessageOptions.DontRequireReceiver);
     void OnAbandonClick() => GetComponent<MainMenuController>().SendMessage("OnAbandon", SendMessageOptions.DontRequireReceiver);
-    void OnMenuClick() => GetComponent<MainMenuController>().SendMessage("OnMenu", SendMessageOptions.DontRequireReceiver);
+    void OnSettingsClick() => GetComponent<MainMenuController>().SendMessage("OnSettings", SendMessageOptions.DontRequireReceiver);
     void OnExitClick() => GetComponent<MainMenuController>().SendMessage("OnExit", SendMessageOptions.DontRequireReceiver);
+
+    TMP_FontAsset ResolveTMPFont()
+    {
+        if (fontAsset != null) return fontAsset;
+        return TMP_Settings.defaultFontAsset;
+    }
+
+    void ApplyStyles(RectTransform panel)
+    {
+        var texts = panel.GetComponentsInChildren<TextMeshProUGUI>(true);
+        var f = ResolveTMPFont();
+        foreach (var t in texts)
+        {
+            t.fontSize = globalFontSize;
+            t.lineSpacing = globalLineSpacing;
+            t.alignment = textAlignment;
+            if (f != null) t.font = f;
+        }
+        var vlg = panel.GetComponent<VerticalLayoutGroup>();
+        if (vlg != null) vlg.spacing = layoutSpacing;
+    }
+
+ 
+
+ 
+
+    void ApplyAnchor(RectTransform rt, PanelAnchor a)
+    {
+        switch (a)
+        {
+            case PanelAnchor.BottomLeft:
+                rt.anchorMin = new Vector2(0f, 0f); rt.anchorMax = new Vector2(0f, 0f); rt.pivot = new Vector2(0f, 0f); break;
+            case PanelAnchor.BottomRight:
+                rt.anchorMin = new Vector2(1f, 0f); rt.anchorMax = new Vector2(1f, 0f); rt.pivot = new Vector2(1f, 0f); break;
+            case PanelAnchor.TopLeft:
+                rt.anchorMin = new Vector2(0f, 1f); rt.anchorMax = new Vector2(0f, 1f); rt.pivot = new Vector2(0f, 1f); break;
+            case PanelAnchor.TopRight:
+                rt.anchorMin = new Vector2(1f, 1f); rt.anchorMax = new Vector2(1f, 1f); rt.pivot = new Vector2(1f, 1f); break;
+            case PanelAnchor.CenterLeft:
+                rt.anchorMin = new Vector2(0f, 0.5f); rt.anchorMax = new Vector2(0f, 0.5f); rt.pivot = new Vector2(0f, 0.5f); break;
+            case PanelAnchor.CenterRight:
+                rt.anchorMin = new Vector2(1f, 0.5f); rt.anchorMax = new Vector2(1f, 0.5f); rt.pivot = new Vector2(1f, 0.5f); break;
+            case PanelAnchor.Center:
+                rt.anchorMin = new Vector2(0.5f, 0.5f); rt.anchorMax = new Vector2(0.5f, 0.5f); rt.pivot = new Vector2(0.5f, 0.5f); break;
+        }
+    }
+
+#if UNITY_EDITOR
+    [UnityEditor.MenuItem("Tools/Main Menu/Setup Static UI")]
+    static void SetupStaticUI()
+    {
+        var canvas = UnityEngine.Object.FindAnyObjectByType<Canvas>();
+        if (canvas == null)
+        {
+            var canvasGo = new GameObject("UI_Canvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+            var c = canvasGo.GetComponent<Canvas>();
+            c.renderMode = RenderMode.ScreenSpaceOverlay;
+            var scaler = canvasGo.GetComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1920, 1080);
+            canvas = c;
+        }
+        var host = new GameObject("MainMenu", typeof(MainMenuController), typeof(MainMenuUIBuilder));
+        host.transform.SetParent(canvas.transform, false);
+        var builder = host.GetComponent<MainMenuUIBuilder>();
+        builder.BuildIfMissing();
+        UnityEditor.Selection.activeObject = host;
+    }
+#endif
+
+ 
 }
