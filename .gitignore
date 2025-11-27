@@ -66,3 +66,13 @@ Build/
 Builds/
 Assets/TextMesh Pro/Fonts/simkai SDF.asset
 Assets/DefaceGames/Fantasy Map Assets Pack Lite/PSD Files/demo-map.psd
+*.apk
+*.aab
+*.ipa
+*.unitypackage
+*.bak
+*.orig
+*.swp
+*.swo
+*.temp
+TestResults/

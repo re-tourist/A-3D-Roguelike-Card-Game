@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 
 namespace Game.Map
 {
@@ -22,6 +23,11 @@ namespace Game.Map
         public float nodeSize = 48f;
         public float lineThickness = 6f;
 
+        [Header("滚动设置")]
+        public bool enableScroll = true;
+        public float scrollSensitivity = 30f;
+        public float verticalScale = 1.4f;
+
         private MapGraph graph;
         private MapGenerator generator;
         private Dictionary<int, NodeView> nodeViews = new Dictionary<int, NodeView>();
@@ -34,6 +40,8 @@ namespace Game.Map
                 tiers = tiers,
                 seed = seed
             };
+            EnsureContainer();
+            EnsureDefaults();
         }
 
         void Start()
@@ -80,7 +88,7 @@ namespace Game.Map
 
             foreach (var node in graph.nodes)
             {
-                var nv = Instantiate(nodePrefab, mapContainer);
+                var nv = nodePrefab != null ? Instantiate(nodePrefab, mapContainer) : CreateNodeView();
                 nodeViews[node.id] = nv;
 
                 // 计算位置：X按列，Y按lane
@@ -118,7 +126,15 @@ namespace Game.Map
 
         void CreateLine(Vector2 start, Vector2 end)
         {
-            var line = Instantiate(linePrefab, mapContainer);
+            Image line;
+            if (linePrefab != null)
+                line = Instantiate(linePrefab, mapContainer);
+            else
+            {
+                var go = new GameObject("Line", typeof(RectTransform), typeof(Image));
+                go.transform.SetParent(mapContainer, false);
+                line = go.GetComponent<Image>();
+            }
             var rt = line.GetComponent<RectTransform>();
             rt.anchorMin = rt.anchorMax = new Vector2(0f, 0f);
 
@@ -130,6 +146,117 @@ namespace Game.Map
             rt.anchoredPosition = start + dir * 0.5f;
             rt.localRotation = Quaternion.Euler(0, 0, angle);
             line.color = new Color(1f, 1f, 1f, 0.25f); // 浅色线条
+        }
+
+        void EnsureContainer()
+        {
+            if (mapContainer != null) return;
+            EnsureEventSystem();
+            var canvas = GetComponentInParent<Canvas>();
+            if (canvas == null)
+            {
+                var canvases = FindObjectsOfType<Canvas>();
+                foreach (var c in canvases)
+                {
+                    if (c.gameObject.scene == gameObject.scene) { canvas = c; break; }
+                }
+            }
+            Transform parent = canvas != null ? canvas.transform : transform;
+            if (enableScroll)
+            {
+                var scrollGo = new GameObject("MapScroll", typeof(RectTransform), typeof(ScrollRect));
+                var srt = scrollGo.GetComponent<RectTransform>();
+                srt.SetParent(parent, false);
+                srt.anchorMin = Vector2.zero; srt.anchorMax = Vector2.one;
+                srt.offsetMin = Vector2.zero; srt.offsetMax = Vector2.zero;
+
+                var vpGo = new GameObject("Viewport", typeof(RectTransform), typeof(Image), typeof(RectMask2D));
+                var vprt = vpGo.GetComponent<RectTransform>();
+                vprt.SetParent(scrollGo.transform, false);
+                vprt.anchorMin = Vector2.zero; vprt.anchorMax = Vector2.one;
+                vprt.offsetMin = Vector2.zero; vprt.offsetMax = Vector2.zero;
+                var vpImg = vpGo.GetComponent<Image>();
+                vpImg.color = new Color(0f, 0f, 0f, 0f);
+                vpImg.raycastTarget = true;
+
+                var bgGo = new GameObject("Background", typeof(RectTransform), typeof(Image));
+                var bgRt = bgGo.GetComponent<RectTransform>();
+                bgRt.SetParent(vprt, false);
+                bgRt.anchorMin = new Vector2(0f, 0f);
+                bgRt.anchorMax = new Vector2(1f, 1f);
+                bgRt.offsetMin = Vector2.zero; bgRt.offsetMax = Vector2.zero;
+                var bgImg = bgGo.GetComponent<Image>();
+                bgImg.color = Color.black;
+                bgImg.raycastTarget = false;
+
+                var contentGo = new GameObject("MapContainer", typeof(RectTransform));
+                var rt = contentGo.GetComponent<RectTransform>();
+                rt.SetParent(vprt, false);
+                rt.anchorMin = new Vector2(0.5f, 0.5f);
+                rt.anchorMax = new Vector2(0.5f, 0.5f);
+                rt.pivot = new Vector2(0.5f, 0.5f);
+                rt.anchoredPosition = Vector2.zero;
+
+                var sr = scrollGo.GetComponent<ScrollRect>();
+                sr.viewport = vprt;
+                sr.content = rt;
+                sr.vertical = true;
+                sr.horizontal = false;
+                sr.movementType = ScrollRect.MovementType.Clamped;
+                sr.scrollSensitivity = scrollSensitivity;
+
+                mapContainer = rt;
+                mapContainer.transform.SetAsLastSibling();
+
+                var vpSize = vprt.rect.size;
+                mapContainer.sizeDelta = new Vector2(vpSize.x, vpSize.y * Mathf.Max(1f, verticalScale));
+            }
+            else
+            {
+                var host = new GameObject("MapContainer", typeof(RectTransform));
+                var rt = host.GetComponent<RectTransform>();
+                rt.SetParent(parent, false);
+                rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
+                rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero;
+                mapContainer = rt;
+                mapContainer.transform.SetAsLastSibling();
+            }
+        }
+
+        void EnsureEventSystem()
+        {
+            if (FindObjectOfType<EventSystem>() != null) return;
+            var es = new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
+        }
+
+        NodeView CreateNodeView()
+        {
+            var go = new GameObject("NodeView", typeof(RectTransform), typeof(Image), typeof(Button), typeof(NodeView));
+            var rt = go.GetComponent<RectTransform>();
+            rt.SetParent(mapContainer, false);
+            var img = go.GetComponent<Image>();
+            img.color = new Color(1f, 1f, 1f, 0.18f);
+            var btn = go.GetComponent<Button>();
+            var ringGo = new GameObject("Ring", typeof(RectTransform), typeof(Image));
+            var rrt = ringGo.GetComponent<RectTransform>();
+            rrt.SetParent(go.transform, false);
+            rrt.anchorMin = new Vector2(0f, 0f); rrt.anchorMax = new Vector2(1f, 1f);
+            rrt.offsetMin = new Vector2(-4f, -4f); rrt.offsetMax = new Vector2(4f, 4f);
+            var ringImg = ringGo.GetComponent<Image>();
+            ringImg.color = new Color(1f, 1f, 1f, 0.2f);
+            var nv = go.GetComponent<NodeView>();
+            nv.icon = img;
+            nv.button = btn;
+            nv.ring = ringImg;
+            return nv;
+        }
+
+        void EnsureDefaults()
+        {
+            if (horizontalPadding < 0f) horizontalPadding = 0f;
+            if (verticalPadding < 0f) verticalPadding = 0f;
+            nodeSize = Mathf.Clamp(nodeSize, 24f, 128f);
+            lineThickness = Mathf.Clamp(lineThickness, 1f, 12f);
         }
 
         public void OnNodeClicked(MapNode node)
@@ -150,25 +277,25 @@ namespace Game.Map
             switch (node.type)
             {
                 case MapNodeType.Battle:
-                    TryLoadSceneBattle();
+                    TryLoad(SceneFlowManager.SceneType.Battle);
                     break;
                 case MapNodeType.Shop:
-                    Debug.Log("Shop node selected - TODO: load Shop scene.");
+                    TryLoad(SceneFlowManager.SceneType.Shop);
                     break;
                 case MapNodeType.Event:
-                    Debug.Log("Event node selected - TODO: load Event scene.");
+                    TryLoad(SceneFlowManager.SceneType.Event);
                     break;
                 case MapNodeType.Elite:
-                    Debug.Log("Elite node selected - TODO: load Elite battle scene.");
+                    TryLoad(SceneFlowManager.SceneType.Elite);
                     break;
                 case MapNodeType.Rest:
-                    Debug.Log("Rest node selected - TODO: open Rest UI.");
+                    TryLoad(SceneFlowManager.SceneType.Rest);
                     break;
                 case MapNodeType.Treasure:
-                    Debug.Log("Treasure node selected - TODO: open Reward UI.");
+                    TryLoad(SceneFlowManager.SceneType.Reward);
                     break;
                 case MapNodeType.Boss:
-                    TryLoadSceneBoss();
+                    TryLoad(SceneFlowManager.SceneType.Battle);
                     break;
             }
 
@@ -176,26 +303,12 @@ namespace Game.Map
             Core.SaveManager.SaveMapProgress(graph, node.id);
         }
 
-        void TryLoadSceneBattle()
+        void TryLoad(SceneFlowManager.SceneType type)
         {
-            // 若项目已有 SceneFlowManager 的 Battle 映射则触发加载
-            try
-            {
-                SceneFlowManager.Instance?.LoadScene(SceneFlowManager.SceneType.Battle);
-            }
-            catch { Debug.Log("SceneFlowManager not found or Battle scene missing."); }
+            SceneFlowManager.Instance?.LoadScene(type);
         }
 
-        void TryLoadSceneBoss()
-        {
-            try
-            {
-                SceneFlowManager.Instance?.LoadScene(SceneFlowManager.SceneType.Battle);
-            }
-            catch { Debug.Log("SceneFlowManager not found or Boss scene missing."); }
-        }
-
-        public Color GetColorForType(MapNodeType type)
+    public Color GetColorForType(MapNodeType type)
         {
             switch (type)
             {

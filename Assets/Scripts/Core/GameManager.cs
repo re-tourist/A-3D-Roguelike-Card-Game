@@ -1,14 +1,15 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 /// <summary>
-/// ÓÎÏ·Ö÷¿Ø£º¸ºÔð×´Ì¬»ú¡¢³õÊ¼»¯Á÷³ÌÓëÈ«¾ÖÒýÓÃ¡£
+/// ï¿½ï¿½Ï·ï¿½ï¿½ï¿½Ø£ï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È«ï¿½ï¿½ï¿½ï¿½ï¿½Ã¡ï¿½
 /// </summary>
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
 
     /// <summary>
-    /// ÓÎÏ·×´Ì¬Ã¶¾Ù
+    /// ï¿½ï¿½Ï·×´Ì¬Ã¶ï¿½ï¿½
     /// </summary>
     public enum GameState { Boot, MainMenu, Map, Battle, Reward, GameOver }
 
@@ -30,7 +31,6 @@ public class GameManager : MonoBehaviour
 
     private void InitializeSystems()
     {
-        // ³õÊ¼»¯ÆäËûºËÐÄÏµÍ³£¨¿É·ÅÔÚ´Ë´¦£©
         if (FindObjectOfType<SceneFlowManager>() == null)
             gameObject.AddComponent<SceneFlowManager>();
 
@@ -40,13 +40,35 @@ public class GameManager : MonoBehaviour
         if (FindObjectOfType<AudioManager>() == null)
             gameObject.AddComponent<AudioManager>();
 
-        // ³õÊ¼»¯Íê³Éºó£¬¼ÓÔØÖ÷²Ëµ¥
+        StartCoroutine(BootSequence());
+    }
+
+    private System.Collections.IEnumerator BootSequence()
+    {
+        while (SceneFlowManager.Instance == null || UIManager.Instance == null || AudioManager.Instance == null)
+            yield return null;
+        yield return null;
         SetState(GameState.MainMenu);
         SceneFlowManager.Instance.LoadScene(SceneFlowManager.SceneType.MainMenu);
+        EventBus.Subscribe("OnSceneLoaded", OnSceneLoaded);
+    }
+
+    private void OnSceneLoaded(object payload)
+    {
+        if (payload is SceneFlowManager.SceneType type && type == SceneFlowManager.SceneType.MainMenu)
+        {
+            EnsureMainMenuUI();
+        }
+    }
+
+    private void EnsureMainMenuUI()
+    {
+        var controller = FindObjectOfType<MainMenuController>();
+        if (controller == null) return;
     }
 
     /// <summary>
-    /// ÐÞ¸ÄÓÎÏ·×´Ì¬²¢¹ã²¥ÊÂ¼þ
+    /// ï¿½Þ¸ï¿½ï¿½ï¿½Ï·×´Ì¬ï¿½ï¿½ï¿½ã²¥ï¿½Â¼ï¿½
     /// </summary>
     public void SetState(GameState newState)
     {

@@ -1,16 +1,17 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using System.Collections;
+using UnityEngine.EventSystems;
 
 /// <summary>
-/// ���Ƴ�������/ж�أ�Additive ģʽ��
-/// ��֤ BootstrapScene ��פ������������̬�л���
+/// 控制场景加载与卸载（Additive 模式），
+/// 保证常驻管理器跨场景切换稳定。
 /// </summary>
 public class SceneFlowManager : MonoBehaviour
 {
     public static SceneFlowManager Instance { get; private set; }
 
-    public enum SceneType { MainMenu, Map, Battle, Reward }
+    public enum SceneType { MainMenu, Map, Battle, Reward, Shop, Event, Rest, Elite }
 
     private string currentScene = string.Empty;
 
@@ -24,10 +25,12 @@ public class SceneFlowManager : MonoBehaviour
         Instance = this;
         DontDestroyOnLoad(gameObject);
         Debug.Log("[SceneFlowManager] Initialized.");
+        EnsureHUD();
+        currentScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
     }
 
     /// <summary>
-    /// �첽����ָ��������Additive ģʽ��
+    /// 异步加载指定场景（Additive 模式）。
     /// </summary>
     public void LoadScene(SceneType type, object context = null)
     {
@@ -39,13 +42,36 @@ public class SceneFlowManager : MonoBehaviour
         string targetScene = GetSceneName(type);
         Debug.Log($"[SceneFlowManager] Loading scene: {targetScene}");
 
-        if (!string.IsNullOrEmpty(currentScene))
+        #if !UNITY_EDITOR
+        if (!Application.CanStreamedLevelBeLoaded(targetScene))
         {
-            yield return SceneManager.UnloadSceneAsync(currentScene);
-            Debug.Log($"[SceneFlowManager] Unloaded: {currentScene}");
+            Debug.LogError($"[SceneFlowManager] Scene '{targetScene}' is not in Build Settings or invalid.");
+            yield break;
+        }
+        #endif
+
+        var loadedTarget = SceneManager.GetSceneByName(targetScene);
+        if (!loadedTarget.IsValid() || !loadedTarget.isLoaded)
+        {
+            yield return SceneManager.LoadSceneAsync(targetScene, LoadSceneMode.Additive);
+            loadedTarget = SceneManager.GetSceneByName(targetScene);
         }
 
-        yield return SceneManager.LoadSceneAsync(targetScene, LoadSceneMode.Additive);
+        if (loadedTarget.IsValid())
+        {
+            SceneManager.SetActiveScene(loadedTarget);
+            CleanupEventSystemsInActiveScene();
+        }
+
+        if (!string.IsNullOrEmpty(currentScene))
+        {
+            var s = SceneManager.GetSceneByName(currentScene);
+            if (s.IsValid() && s.isLoaded && s.name != targetScene)
+            {
+                yield return SceneManager.UnloadSceneAsync(currentScene);
+                Debug.Log($"[SceneFlowManager] Unloaded: {currentScene}");
+            }
+        }
         currentScene = targetScene;
 
         EventBus.Publish("OnSceneLoaded", type);
@@ -54,11 +80,37 @@ public class SceneFlowManager : MonoBehaviour
 
     private string GetSceneName(SceneType type) => type switch
     {
-        // 与当前项目场景文件名保持一致
-        SceneType.MainMenu => "MainMenu",
-        SceneType.Map => "01_MapScene",
-        SceneType.Battle => "02_BattleScene",
-        SceneType.Reward => "03_RewardScene",
+        SceneType.MainMenu => "MainMenuSence",
+        SceneType.Map => "MapSence",
+        SceneType.Battle => "FightSence",
+        SceneType.Reward => "RewardSence",
+        SceneType.Shop => "ShopSence",
+        SceneType.Event => "EventSence",
+        SceneType.Rest => "RestSence",
+        SceneType.Elite => "FightSence",
         _ => "99_DebugScene"
     };
+
+    private void EnsureHUD()
+    {
+        if (FindObjectOfType<Game.UI.HUDController>() == null)
+        {
+            var go = new GameObject("HUD", typeof(Game.UI.HUDController));
+        }
+    }
+
+    private void CleanupEventSystemsInActiveScene()
+    {
+        var active = SceneManager.GetActiveScene();
+        var list = GameObject.FindObjectsOfType<EventSystem>();
+        for (int i = 0; i < list.Length; i++)
+        {
+            var es = list[i];
+            if (es != null && es.gameObject.scene == active)
+            {
+                es.gameObject.SetActive(false);
+                Debug.Log("[SceneFlowManager] Disabled scene EventSystem in " + active.name);
+            }
+        }
+    }
 }

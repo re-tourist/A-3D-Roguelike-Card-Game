@@ -2238,6 +2238,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5c247f1ef51f71341bdb77d1701386ce, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  buildOnStart: 1
+  panelSize: {x: 320, y: 380}
+  panelOffset: {x: 24, y: 24}
+  defaultFont: {fileID: 12800000, guid: d8e822fd260904a44aac2ecc27bb2bca, type: 3}
+  allowDragInPlay: 1
+  rememberPosition: 0
+  layoutSpacing: 16
+  globalFontSize: 24
+  globalLineSpacing: 4
+  fontAsset: {fileID: 11400000, guid: bfc27c2d276a9aa46a3e1ca81d5e8fb4, type: 2}
+  useTimesNewRoman: 1
+  textAlignment: 4097
+  anchor: 0
 --- !u!224 &1499599816 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 3824263373125416284, guid: 32ca2232a555a6e4486a3f6780ba2d8b, type: 3}

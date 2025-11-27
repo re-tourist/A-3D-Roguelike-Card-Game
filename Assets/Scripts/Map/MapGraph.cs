@@ -20,6 +20,7 @@ namespace Game.Map
         public int index;
         public NodeType type;
         public bool reachable;
+        public bool visited;
         public Vector2 normPos;
     }
 

@@ -27,6 +27,11 @@ using Game.Localization;
         RefreshButtonsBySaveState();
     }
 
+    void OnEnable()
+    {
+        RefreshButtonsBySaveState();
+    }
+
     void Update()
     {
         if (Input.GetKeyDown(KeyCode.Escape))
@@ -39,62 +44,79 @@ using Game.Localization;
 
     void WireButtons()
     {
-        if (continueButton != null)
+        AutoWireIfMissing();
+        if (continueButton != null) { continueButton.onClick.RemoveAllListeners(); continueButton.onClick.AddListener(OnContinue); }
+        if (newGameButton != null) { newGameButton.onClick.RemoveAllListeners(); newGameButton.onClick.AddListener(OnNewGame); }
+        if (abandonButton != null) { abandonButton.onClick.RemoveAllListeners(); abandonButton.onClick.AddListener(OnAbandon); }
+        if (settingsButton != null) { settingsButton.onClick.RemoveAllListeners(); settingsButton.onClick.AddListener(OnSettings); }
+        if (exitButton != null) { exitButton.onClick.RemoveAllListeners(); exitButton.onClick.AddListener(OnExit); }
+    }
+
+    void AutoWireIfMissing()
+    {
+        var btns = GetComponentsInChildren<UnityEngine.UI.Button>(true);
+        System.Func<UnityEngine.UI.Button, string> getLabel = b =>
         {
-            continueButton.onClick.RemoveAllListeners();
-            continueButton.onClick.AddListener(OnContinue);
+            var t = b.transform.Find("Text")?.GetComponent<TMPro.TextMeshProUGUI>();
+            return t != null ? t.text : b.gameObject.name;
+        };
+        if (newGameButton == null)
+        {
+            foreach (var b in btns) { var label = getLabel(b); if (!string.IsNullOrEmpty(label) && (label.Contains("开始") || label.Contains("Start"))) { newGameButton = b; break; } }
         }
-        if (newGameButton != null)
+        if (continueButton == null)
         {
-            newGameButton.onClick.RemoveAllListeners();
-            newGameButton.onClick.AddListener(OnNewGame);
+            foreach (var b in btns) { var label = getLabel(b); if (!string.IsNullOrEmpty(label) && (label.Contains("继续") || label.Contains("Continue"))) { continueButton = b; break; } }
         }
-        if (abandonButton != null)
+        if (abandonButton == null)
         {
-            abandonButton.onClick.RemoveAllListeners();
-            abandonButton.onClick.AddListener(OnAbandon);
+            foreach (var b in btns) { var label = getLabel(b); if (!string.IsNullOrEmpty(label) && (label.Contains("放弃") || label.Contains("Give Up") || label.Contains("Abandon"))) { abandonButton = b; break; } }
         }
-        if (settingsButton != null)
+        if (settingsButton == null)
         {
-            settingsButton.onClick.RemoveAllListeners();
-            settingsButton.onClick.AddListener(OnSettings);
+            foreach (var b in btns) { var label = getLabel(b); if (!string.IsNullOrEmpty(label) && (label.Contains("设置") || label.Contains("Settings"))) { settingsButton = b; break; } }
         }
-        if (exitButton != null)
+        if (exitButton == null)
         {
-            exitButton.onClick.RemoveAllListeners();
-            exitButton.onClick.AddListener(OnExit);
+            foreach (var b in btns) { var label = getLabel(b); if (!string.IsNullOrEmpty(label) && (label.Contains("退出") || label.Contains("Exit") || label.Contains("Quit"))) { exitButton = b; break; } }
+        }
+        if (buttonsPanel == null)
+        {
+            var commonParent = newGameButton != null ? newGameButton.transform.parent : (continueButton != null ? continueButton.transform.parent : (settingsButton != null ? settingsButton.transform.parent : transform));
+            buttonsPanel = commonParent as RectTransform;
         }
     }
 
     void RefreshButtonsBySaveState()
     {
         bool hasSave = SaveManager.TryLoadMapProgress(out var _, out var _);
+        if (newGameButton != null) newGameButton.gameObject.SetActive(true);
+        if (continueButton != null) continueButton.gameObject.SetActive(true);
+        if (abandonButton != null) abandonButton.gameObject.SetActive(true);
+        if (settingsButton != null) settingsButton.gameObject.SetActive(true);
+        if (exitButton != null) exitButton.gameObject.SetActive(true);
 
-        if (continueButton != null)
+        if (hasSave)
         {
-            continueButton.interactable = hasSave;
-            if (hideContinueWhenNoSave) continueButton.gameObject.SetActive(hasSave);
+            if (newGameButton != null) newGameButton.interactable = false;
+            if (continueButton != null) { continueButton.interactable = true; }
+            if (abandonButton != null) { abandonButton.interactable = true; }
         }
-        if (abandonButton != null)
+        else
         {
-            abandonButton.interactable = hasSave;
-            if (hideAbandonWhenNoSave) abandonButton.gameObject.SetActive(hasSave);
-        }
-        if (newGameButton != null)
-        {
-            newGameButton.gameObject.SetActive(!hasSave);
+            if (newGameButton != null) newGameButton.interactable = true;
+            if (continueButton != null) { continueButton.interactable = false; }
+            if (abandonButton != null) { abandonButton.interactable = false; }
         }
     }
 
     void OnContinue()
     {
-        // 继续游戏：进入地图场景，自动从存档恢复
         SceneFlowManager.Instance?.LoadScene(SceneFlowManager.SceneType.Map);
     }
 
     void OnNewGame()
     {
-        // 新游戏：清空存档并进入地图场景
         SaveManager.ClearMapProgress();
         SceneFlowManager.Instance?.LoadScene(SceneFlowManager.SceneType.Map);
     }
@@ -109,12 +131,32 @@ using Game.Localization;
 
     void OnSettings()
     {
-        Debug.Log("[MainMenu] Open settings panel.");
-        EnsureSettingsPanel();
-        if (settingsPanel != null)
-        {
-            settingsPanel.SetActive(true);
-        }
+        if (settingsPanel != null) { settingsPanel.SetActive(true); return; }
+        var canvas = GetComponentInParent<Canvas>();
+        var panel = canvas != null ? canvas.transform.Find("SettingsPanel") : transform.Find("SettingsPanel");
+        if (panel != null) { settingsPanel = panel.gameObject; settingsPanel.SetActive(true); return; }
+        var go = new GameObject("SettingsPanel", typeof(RectTransform), typeof(UnityEngine.UI.Image));
+        var rt = go.GetComponent<RectTransform>();
+        rt.SetParent(canvas != null ? canvas.transform : transform, false);
+        rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
+        rt.pivot = new Vector2(0.5f, 0.5f);
+        rt.sizeDelta = new Vector2(640f, 360f);
+        var img = go.GetComponent<UnityEngine.UI.Image>();
+        img.color = new Color(0.1f, 0.1f, 0.1f, 0.9f);
+        var titleGo = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
+        var trt = titleGo.GetComponent<RectTransform>();
+        trt.SetParent(go.transform, false);
+        trt.anchorMin = new Vector2(0f, 0f);
+        trt.anchorMax = new Vector2(1f, 1f);
+        trt.offsetMin = new Vector2(16f, 16f);
+        trt.offsetMax = new Vector2(-16f, -16f);
+        var txt = titleGo.GetComponent<TextMeshProUGUI>();
+        txt.text = "设置界面开发中";
+        txt.alignment = TextAlignmentOptions.Center;
+        txt.fontSize = 28;
+        txt.color = Color.white;
+        settingsPanel = go;
+        settingsPanel.SetActive(true);
     }
 
     void EnsureSettingsPanel()
@@ -260,13 +302,55 @@ using Game.Localization;
 
     void OnExit()
     {
-        ShowExitModal();
+        Application.Quit();
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+#endif
     }
 
     void ShowExitModal()
     {
         EnsureExitModal();
         if (exitModal != null) exitModal.SetActive(true);
+    }
+
+    void EnsureMaskOverlay()
+    {
+        var canvas = GetComponentInParent<Canvas>();
+        var parent = canvas != null ? canvas.transform : transform;
+        var root = new GameObject("MenuOverlayRoot", typeof(RectTransform));
+        var rrt = root.GetComponent<RectTransform>();
+        rrt.SetParent(parent, false);
+        rrt.anchorMin = Vector2.zero; rrt.anchorMax = Vector2.one;
+        rrt.offsetMin = Vector2.zero; rrt.offsetMax = Vector2.zero;
+
+        var gradGo = new GameObject("LeftGradient", typeof(RectTransform), typeof(GradientGraphic));
+        var grt = gradGo.GetComponent<RectTransform>();
+        grt.SetParent(root.transform, false);
+        grt.anchorMin = new Vector2(0f, 0f);
+        grt.anchorMax = new Vector2(0.6f, 1f);
+        grt.offsetMin = Vector2.zero;
+        grt.offsetMax = Vector2.zero;
+        var gg = gradGo.GetComponent<GradientGraphic>();
+        gg.orientation = GradientGraphic.Orientation.Horizontal;
+        gg.startColor = new Color(0f, 0f, 0f, 0.8f);
+        gg.endColor = new Color(0f, 0f, 0f, 0f);
+        gg.raycastTarget = false;
+
+        var wedgeGo = new GameObject("DiagonalTint", typeof(RectTransform), typeof(UnityEngine.UI.Image));
+        var wrt = wedgeGo.GetComponent<RectTransform>();
+        wrt.SetParent(root.transform, false);
+        wrt.anchorMin = new Vector2(0f, 0f);
+        wrt.anchorMax = new Vector2(0f, 1f);
+        wrt.pivot = new Vector2(0f, 0.5f);
+        wrt.sizeDelta = new Vector2(640f, 0f);
+        wrt.anchoredPosition = new Vector2(220f, 0f);
+        wrt.localRotation = Quaternion.Euler(0f, 0f, -14f);
+        var wimg = wedgeGo.GetComponent<UnityEngine.UI.Image>();
+        wimg.color = new Color(0.6f, 0.75f, 1f, 0.18f);
+        wimg.raycastTarget = false;
+
+        root.transform.SetAsLastSibling();
     }
 
     void EnsureExitModal()
