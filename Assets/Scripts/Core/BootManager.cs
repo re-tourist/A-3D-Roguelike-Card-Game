@@ -20,6 +20,11 @@ public class BootManager : MonoBehaviour
             Debug.Log("[BootManager] DevPanel created.");
         }
 
+        if (FindObjectOfType<BattleManager>() == null)
+        {
+            new GameObject("BattleManager", typeof(BattleManager));
+        }
+
         yield return null;
     }
 

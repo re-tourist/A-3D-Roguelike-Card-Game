@@ -10,6 +10,8 @@ using UnityEngine.EventSystems;
 public class SceneFlowManager : MonoBehaviour
 {
     public static SceneFlowManager Instance { get; private set; }
+    public object LastContext { get; private set; }
+    public SceneType PreviousNonMapSceneType { get; private set; }
 
     public enum SceneType { MainMenu, Map, Battle, Reward, Shop, Event, Rest, Elite }
 
@@ -39,6 +41,8 @@ public class SceneFlowManager : MonoBehaviour
 
     private IEnumerator LoadSceneAsync(SceneType type, object context)
     {
+        LastContext = context;
+        if (type != SceneType.Map) PreviousNonMapSceneType = type;
         string targetScene = GetSceneName(type);
         Debug.Log($"[SceneFlowManager] Loading scene: {targetScene}");
 

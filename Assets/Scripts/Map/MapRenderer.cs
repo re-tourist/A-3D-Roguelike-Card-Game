@@ -80,13 +80,14 @@ namespace Game.Map
                         var scrollGo = new GameObject("MapScroll", typeof(RectTransform), typeof(ScrollRect));
                         var srt = scrollGo.GetComponent<RectTransform>();
                         srt.SetParent(parent, false);
+                        scrollGo.transform.SetSiblingIndex(0);
                         srt.anchorMin = Vector2.zero; srt.anchorMax = Vector2.one;
                         srt.offsetMin = Vector2.zero; srt.offsetMax = Vector2.zero;
                         var vpGo = new GameObject("Viewport", typeof(RectTransform), typeof(Image), typeof(RectMask2D));
                         var vprt = vpGo.GetComponent<RectTransform>();
                         vprt.SetParent(scrollGo.transform, false);
                         vprt.anchorMin = Vector2.zero; vprt.anchorMax = Vector2.one;
-                        vprt.offsetMin = Vector2.zero; vprt.offsetMax = Vector2.zero;
+                        vprt.offsetMin = Vector2.zero; vprt.offsetMax = new Vector2(0f, -64f);
                         var vpImg = vpGo.GetComponent<Image>();
                         vpImg.color = new Color(0f, 0f, 0f, 0f);
                         vpImg.raycastTarget = true;
@@ -112,8 +113,9 @@ namespace Game.Map
                         var go = new GameObject("MapView", typeof(RectTransform));
                         targetRoot = go.GetComponent<RectTransform>();
                         targetRoot.SetParent(parent, false);
+                        go.transform.SetSiblingIndex(0);
                         targetRoot.anchorMin = Vector2.zero; targetRoot.anchorMax = Vector2.one;
-                        targetRoot.offsetMin = Vector2.zero; targetRoot.offsetMax = Vector2.zero;
+                        targetRoot.offsetMin = Vector2.zero; targetRoot.offsetMax = new Vector2(0f, -64f);
                         SetupBackground(parent);
                         SetupMapTexture(targetRoot);
                     }
@@ -132,13 +134,22 @@ namespace Game.Map
                     g = generator.Generate();
                     currentNodeId = -1;
                 }
+                var ctx = SceneFlowManager.Instance != null ? SceneFlowManager.Instance.LastContext : null;
+                bool freeze = (ctx is string s && s.Contains("freeze_map"));
                 var parentRt = targetRoot.parent as RectTransform;
                 if (enableScroll && parentRt != null)
                 {
                     var vpSize = parentRt.rect.size;
                     targetRoot.sizeDelta = new Vector2(vpSize.x, vpSize.y * Mathf.Max(1f, verticalScale));
                 }
-                ApplyAvailabilityByCurrentNode(g, currentNodeId);
+                if (freeze)
+                {
+                    for (int i = 0; i < g.nodes.Count; i++) g.nodes[i].reachable = false;
+                }
+                else
+                {
+                    ApplyAvailabilityByCurrentNode(g, currentNodeId);
+                }
                 currentGraph = g;
                 RenderGraph(g);
             }
@@ -426,6 +437,7 @@ namespace Game.Map
                 ApplyAvailabilityByCurrentNode(currentGraph, n.id);
                 RefreshInteractables();
                 Game.Core.SaveManager.SaveLayerMapProgress(currentGraph, n.id);
+                EventBus.Publish("OnNodeVisited", n.id);
             }
             var type = SceneTypeFor(n.type);
             SceneFlowManager.Instance?.LoadScene(type);

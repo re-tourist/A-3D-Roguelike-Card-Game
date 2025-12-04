@@ -92,6 +92,19 @@ namespace Game.Core
             File.WriteAllText(SaveFilePath, json);
         }
 
+        public static int GetPlayerCardCount()
+        {
+            var data = LoadGameSave();
+            var list = data?.player?.cards;
+            return list != null ? list.Count : 0;
+        }
+
+        public static int GetPlayerMoney()
+        {
+            var data = LoadGameSave();
+            return data?.player != null ? data.player.money : 0;
+        }
+
         public static void SaveMapProgress(MapGraph graph, int currentNodeId)
         {
             if (DevFlags.DisableSaves) return;
