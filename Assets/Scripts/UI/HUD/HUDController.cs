@@ -84,6 +84,8 @@ namespace Game.UI
         {
             DontDestroyOnLoad(gameObject);
             EnsureEventSystem();
+            EnsureCanvas();
+            BuildForwardButton();
             if (autoLoadOnPlay) LoadHUDSettings();
             money = Game.Core.SaveManager.GetPlayerMoney();
             deckCount = Game.Core.SaveManager.GetPlayerCardCount();
@@ -277,6 +279,19 @@ namespace Game.UI
                 DontDestroyOnLoad(es.gameObject);
                 Debug.Log("[HUD] EventSystem found and marked DontDestroyOnLoad");
             }
+        }
+
+        void EnsureCanvas()
+        {
+            if (canvas != null) return;
+            var go = new GameObject("HUDCanvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+            canvas = go.GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 500;
+            var scaler = go.GetComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = refResolution;
+            DontDestroyOnLoad(go);
         }
 
         
